@@ -17,8 +17,12 @@ def prefSim(prefs, user1, user2):
             scores2.append(prefs[user2][movie])
     return sim(scores1, scores2)
 
-# Returns the top 5 users with prefs similar to user, as a list of
-# pairs: [(score, user),...]
+# Returns the top n users with prefs similar to user, as a list of
+# pairs: [(score, user),...].
+#
+# If you reverse prefs to become ratings
+# this method will return the top n movies with ratings similar to to
+# movie.
 def rankedUsers(prefs, user, n=5):
     matches = []
     for user2 in prefs:
@@ -27,6 +31,14 @@ def rankedUsers(prefs, user, n=5):
     matches.reverse()
     return matches[0:n]
 
+# Finds the top n critics similar to user, and ranks their rated
+# movies by how similar the critics' preferences were to you. Returns
+# the list of movies in pairs: [(score, movie),...]
+#
+# If you reverse prefs to become ratings this method will find the top
+# n movies similar to movie, and rank their critics by how similar the
+# movies' ratings were to the input movie. That'd be useful e.g. to
+# find critics that liked the input movie
 def rankedMovies(prefs, user, n=5):
     users = rankedUsers(prefs, user, n)
     movies = {}
@@ -37,16 +49,30 @@ def rankedMovies(prefs, user, n=5):
             if score <= 0:
                 continue
             movies.setdefault(movie, list()).append((score, userRank))
-    scores = {}
+    scores = []
     for movie in movies:
         totalScore = sum([score for (score, userRank) in movies[movie]])
         totalSim = sum([userRank for (score, userRank) in movies[movie]])
-        scores[movie] = totalScore / totalSim
+        scores.append((totalScore / totalSim, movie))
+    scores.sort()
+    scores.reverse()
     return scores
 
+def prefsToRatings(prefs):
+    result = {}
+    for person in prefs:
+        for item in prefs[person]:
+            result.setdefault(item, {})
+            result[item][person] = prefs[person][item]
+    return result
+
 def main():
-    print rankedMovies(prefs.prefs, "Toby", 10)
     # print rankedUsers(prefs.prefs, "Toby", 10)
+    # print rankedMovies(prefs.prefs, "Toby", 10)
+
+    movieRatings = prefsToRatings(prefs.prefs)
+    # print rankedUsers(movieRatings, "Superman Returns", 10)
+    print rankedMovies(movieRatings, "Just My Luck", 10)
 
 if __name__ == "__main__":
     main()
