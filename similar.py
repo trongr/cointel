@@ -2,20 +2,26 @@
 import prefs
 import numpy
 
-# Throws an error if a1 and a2 are not equal
-def sim(a1, a2):
+# Throws an error if a1 and a2 are not equal. pearsonCoeff is between
+# -1 and 1, negatively and positively correlated resp.
+def pearsonCoeff(a1, a2):
     if not a1 or not a2:
         return 0 # not similar
     return numpy.corrcoef(a1, a2)[0, 1]
 
-def prefSim(prefs, user1, user2):
+def pearsonDist(a1, a2):
+    # 1 - pc because pc --> 1 means a1 and a2 are very similar,
+    # i.e. they're very close, i.e. dist --> 0:
+    return 1 - pearsonCoeff(a1, a2)
+
+def prefSimilarity(prefs, user1, user2):
     scores1 = []
     scores2 = []
     for movie in prefs[user1]:
         if movie in prefs[user2]:
             scores1.append(prefs[user1][movie])
             scores2.append(prefs[user2][movie])
-    return sim(scores1, scores2)
+    return pearsonCoeff(scores1, scores2)
 
 # Returns the top n users with prefs similar to user, as a list of
 # pairs: [(score, user),...].
@@ -26,7 +32,7 @@ def prefSim(prefs, user1, user2):
 def rankedUsers(prefs, user, n=5):
     matches = []
     for user2 in prefs:
-        matches.append((prefSim(prefs, user, user2), user2))
+        matches.append((prefSimilarity(prefs, user, user2), user2))
     matches.sort()
     matches.reverse()
     return matches[0:n]

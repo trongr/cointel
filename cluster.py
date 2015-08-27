@@ -66,10 +66,33 @@ def makeWordMatrix(wordlist, wordcounts, matrixFile):
                 out.write('\t0')
         out.write('\n')
 
+def readMatrixFile(matrixFile):
+    lines = [line for line in file(matrixFile)]
+    colnames = lines[0].strip().split('\t')[1:] # First line is the column titles
+    rownames = []
+    data = []
+    for line in lines[1:]:
+        p = line.strip().split('\t')
+        rownames.append(p[0]) # First column in each row is the rowname
+        data.append([float(x) for x in p[1:]]) # The data for this row is the remainder of the row
+    return rownames, colnames, data
+
+class bicluster:
+    def __init_ _(self, vec, left=None, right=None, distance=0.0, id=None):
+        self.left = left
+        self.right = right
+        self.vec = vec
+        self.id = id
+        self.distance = distance
+
 def main():
-    apcount, wordcounts = getWordsFromFeedList("feedlist.txt")
+    feedlist = "feedlist.txt"
+    matrixfile = "wordmatrix.txt"
+    apcount, wordcounts = getWordsFromFeedList(feedlist)
     wordlist = makeWordList(apcount, wordcounts)
-    makeWordMatrix(wordlist, wordcounts, "wordmatrix.txt")
+    makeWordMatrix(wordlist, wordcounts, matrixfile)
+    rownames, colnames, data = readMatrixFile(matrixfile)
+    print rownames
 
 if __name__ == "__main__":
     main()
