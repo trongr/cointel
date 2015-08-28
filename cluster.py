@@ -78,7 +78,7 @@ def readMatrixFile(matrixFile):
     return rownames, colnames, data
 
 class bicluster:
-    def __init_ _(self, vec, left=None, right=None, distance=0.0, id=None):
+    def __init__(self, vec, left=None, right=None, distance=0.0, id=None):
         self.left = left
         self.right = right
         self.vec = vec
