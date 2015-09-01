@@ -1,4 +1,5 @@
 *~
 *.pyc
+*.jpg
 deps
 wordmatrix.txt

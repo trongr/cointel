@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from PIL import Image, ImageDraw
 import feedparser
 import re
 import codecs
@@ -31,7 +32,11 @@ def getWordsFromFeedList(feedList):
     apcount = {} # {word:num_blogs_word_appears_in}
     wordcounts = {} # {blog_title:{word:count}}
     for feedURL in file(feedList):
-        title, wc = getwordcounts(feedURL)
+        try:
+            title, wc = getwordcounts(feedURL)
+        except Exception as e:
+            print "Can't read: " + feedURL
+            continue
         wordcounts[title] = wc
         for word, count in wc.items():
             apcount.setdefault(word, 0)
@@ -102,10 +107,11 @@ def hcluster(rows, distance):
         # loop through every pair looking for the smallest distance
         for i in range(len(clust)):
             for j in range(i + 1, len(clust)):
-                if (clust[i].id, clust[j].id) not in distances:
-                    distances[(clust[i].id, clust[j].id)] = distance(clust[i].vec, clust[j].vec)
-
-                d = distances[(clust[i].id, clust[j].id)]
+                l = clust[i]
+                r = clust[j]
+                if (l.id, r.id) not in distances:
+                    distances[(l.id, r.id)] = distance(l.vec, r.vec)
+                d = distances[(l.id, r.id)]
                 if d < closest:
                     closest = d
                     lowestpair = (i, j)
@@ -142,6 +148,63 @@ def printclust(clust, labels=None, n=0):
     if clust.right != None:
         printclust(clust.right, labels=labels, n=n+1)
 
+# Each leaf node is on its own line, so this is just the number of
+# leaf nodes. Used to calculate the height of the drawing
+def getheight(clust):
+    # Is this an endpoint? Then the height is just 1
+    if clust.left == None and clust.right == None: return 1
+    # Otherwise the height is the same of the heights of
+    # each branch
+    return getheight(clust.left) + getheight(clust.right)
+
+# Used to calculate the width of the drawing:
+def getdepth(clust):
+    # The distance of an endpoint is 0.0
+    if clust.left == None and clust.right == None: return 0
+    # The distance of a branch is the greater of its two sides
+    # plus its own distance
+    return max(getdepth(clust.left), getdepth(clust.right)) + clust.distance
+
+def drawdendrogram(clust, labels, jpeg='clusters.jpg'):
+    # height and width
+    h = getheight(clust) * 20
+    w = 1200
+    depth = getdepth(clust)
+    scaling = float(w - 150) / depth # width is fixed, so scale distances accordingly
+
+    # Create a new image with a white background
+    img = Image.new('RGB', (w, h), (255, 255, 255))
+    draw = ImageDraw.Draw(img)
+    draw.line((0, h / 2, 10, h / 2), fill=(255, 0, 0))
+
+    # Draw the first node
+    drawnode(draw, clust, 10, (h / 2), scaling, labels)
+    img.save(jpeg, 'JPEG')
+
+def drawnode(draw, clust, x, y, scaling, labels):
+    if clust.id < 0:
+        h1 = getheight(clust.left) * 20
+        h2 = getheight(clust.right) * 20
+        top = y - (h1 + h2) / 2
+        bottom = y + (h1 + h2) / 2
+        # Line length
+        ll = clust.distance * scaling
+        # Vertical line from this cluster to children
+        draw.line((x, top + h1 / 2, x, bottom - h2 / 2), fill=(255, 0, 0))
+
+        # Horizontal line to left item
+        draw.line((x, top + h1 / 2, x + ll, top + h1 / 2), fill=(255, 0, 0))
+
+        # Horizontal line to right item
+        draw.line((x, bottom - h2 / 2, x + ll, bottom - h2 / 2), fill=(255, 0, 0))
+
+        # Call the function to draw the left and right nodes
+        drawnode(draw, clust.left, x + ll, top + h1 / 2, scaling, labels)
+        drawnode(draw, clust.right, x + ll, bottom - h2 / 2, scaling, labels)
+    else:
+        # If this is an endpoint, draw the item label
+        draw.text((x + 5, y - 7), labels[clust.id], (0, 0, 0))
+
 def main():
     feedlist = "feedlist.txt"
     matrixfile = "wordmatrix.txt"
@@ -151,6 +214,7 @@ def main():
     rownames, colnames, data = readMatrixFile(matrixfile)
     clust = hcluster(data, distance=similar.pearsonDist)
     printclust(clust, rownames)
+    drawdendrogram(clust, rownames, jpeg='blogclust.jpg')
 
 if __name__ == "__main__":
     main()
