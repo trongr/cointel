@@ -46,12 +46,17 @@ def getWordsFromFeedList(feedList):
 
 # Return list of all words
 def makeWordList(apcount, wordcounts):
-    wordlist = [w for (w, bc) in apcount.items()]
-    # todo. Use apcount to filter (un)common words
-    # for w, bc in apcount.items():
-    #     frac = float(bc) / len(feedlist)
-    #     if frac > 0.1 and frac < 0.5:
-    #         wordlist.append(w)
+    # # Don't filter out (un)common words
+    # wordlist = [w for (w, bc) in apcount.items()]
+
+    # Filter out (un)common words. Should drastically reduce number of
+    # words so hcluster can perform reasonably well
+    wordlist = []
+    for w, bc in apcount.items():
+        frac = float(bc) / len(wordcounts) # fraction of blogs word appears in
+        if frac > 0.05 and frac < 0.9:
+            wordlist.append(w)
+
     return wordlist
 
 # First row of matrixFile is the header: BLOG WORD1 WORD2....  The
@@ -95,13 +100,18 @@ class bicluster:
         self.id = id
         self.distance = distance
 
+# Very inefficient if you try to cluster a long list of nodes
 def hcluster(rows, distance):
     currentclustid = -1
     distances = {} # distances is the cache of distance calculations
     clust = [bicluster(rows[i], id=i) for i in range(len(rows))] # Clusters are initially just the rows
     ROW_LEN = len(clust[0].vec) # This is the total number of words in all the blogs
 
+    print "Clustering: num iteration: " + str(len(clust))
+    depth = 0
     while len(clust) > 1:
+        depth += 1
+        print "Cluster iteration: " + str(depth)
         lowestpair = (0, 1)
         closest = distance(clust[0].vec, clust[1].vec)
         # loop through every pair looking for the smallest distance
@@ -157,7 +167,8 @@ def getheight(clust):
     # each branch
     return getheight(clust.left) + getheight(clust.right)
 
-# Used to calculate the width of the drawing:
+# Used to calculate the width of the drawing, cause the tree is drawn
+# side ways:
 def getdepth(clust):
     # The distance of an endpoint is 0.0
     if clust.left == None and clust.right == None: return 0
@@ -205,16 +216,31 @@ def drawnode(draw, clust, x, y, scaling, labels):
         # If this is an endpoint, draw the item label
         draw.text((x + 5, y - 7), labels[clust.id], (0, 0, 0))
 
+def rotatematrix(data):
+    newdata = []
+    for i in range(len(data[0])):
+        newrow = [data[j][i] for j in range(len(data))]
+        newdata.append(newrow)
+    return newdata
+
 def main():
     feedlist = "feedlist.txt"
     matrixfile = "wordmatrix.txt"
     apcount, wordcounts = getWordsFromFeedList(feedlist)
     wordlist = makeWordList(apcount, wordcounts)
     makeWordMatrix(wordlist, wordcounts, matrixfile)
-    rownames, colnames, data = readMatrixFile(matrixfile)
-    clust = hcluster(data, distance=similar.pearsonDist)
-    printclust(clust, rownames)
-    drawdendrogram(clust, rownames, jpeg='blogclust.jpg')
+
+    print "Clustering blog words"
+    blognames, words, blogwords = readMatrixFile(matrixfile)
+    blogword_clust = hcluster(blogwords, distance=similar.pearsonDist)
+    # printclust(blogword_clust, blognames)
+    drawdendrogram(blogword_clust, blognames, jpeg='blogclust.jpg')
+
+    print "Clustering word blogs"
+    wordblogs = rotatematrix(blogwords)
+    wordblog_clust = hcluster(wordblogs, distance=similar.pearsonDist)
+    # printclust(wordblog_clust, blognames)
+    drawdendrogram(wordblog_clust, words, jpeg='wordclust.jpg')
 
 if __name__ == "__main__":
     main()
