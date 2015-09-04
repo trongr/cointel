@@ -4,6 +4,60 @@ import feedparser
 import re
 import codecs
 import similar
+import random
+
+# k == number of centroids, i.e. the k in k-means
+# rows == [[m-dimensional point], [m-dimensional point],...]
+def kcluster(rows,distance=similar.pearsonDist,k=4):
+  # Determine the minimum and maximum values for each point. Each item
+  # in ranges is the (min, max) of that dimension over all points in
+  # rows
+  ranges=[(min([row[i] for row in rows]), max([row[i] for row in rows]))
+                for i in range(len(rows[0]))]
+
+  # Create k randomly placed centroids
+  centroids=[[random.random()*(ranges[i][1]-ranges[i][0])+ranges[i][0]
+                for i in range(len(rows[0]))] for j in range(k)]
+
+  lastmatches=None
+  # todo. how does num iteration change relative to input size?
+  for t in range(100):
+    print 'Iteration %d' % t
+
+    # bestmatches = [<index of row closest to this centroid>,...]
+    bestmatches=[[] for i in range(k)]
+
+    # Find which centroid is the closest for each row
+    for j in range(len(rows)):
+      row=rows[j]
+      bestmatch=0
+      for i in range(k):
+        d=distance(centroids[i],row)
+        if d<distance(centroids[bestmatch],row): bestmatch=i
+      bestmatches[bestmatch].append(j)
+
+    # If the results are the same as last time, this is complete
+    if bestmatches==lastmatches: break
+    lastmatches=bestmatches
+
+    # Move the centroids to the average of their members
+    for i in range(k):
+      avgs=[0.0]*len(rows[0])
+      if len(bestmatches[i])>0:
+        for rowid in bestmatches[i]:
+          for m in range(len(rows[rowid])):
+            avgs[m]+=rows[rowid][m]
+        for j in range(len(avgs)):
+          avgs[j]/=len(bestmatches[i])
+        centroids[i]=avgs
+
+  return bestmatches
+
+def printKCluster(bestMatches, labels):
+    for i in range(len(bestMatches)):
+        print "Cluster: " + str(i)
+        for labelIndex in bestMatches[i]:
+            print "    " + labels[labelIndex]
 
 # removes tags and returns list of alphabetic (non numeric) words
 def getwords(html):
@@ -13,7 +67,7 @@ def getwords(html):
 
 # Returns title and dictionary of word counts for an RSS feed
 def getwordcounts(feedURL):
-    print "Parsing feed: " + feedURL
+    print "Parsing feed: " + feedURL.strip()
     d = feedparser.parse(feedURL)
     wc = {}
     # Loop over all the entries and add them to word counts
@@ -230,17 +284,23 @@ def main():
     wordlist = makeWordList(apcount, wordcounts)
     makeWordMatrix(wordlist, wordcounts, matrixfile)
 
-    print "Clustering blog words"
     blognames, words, blogwords = readMatrixFile(matrixfile)
-    blogword_clust = hcluster(blogwords, distance=similar.pearsonDist)
-    # printclust(blogword_clust, blognames)
-    drawdendrogram(blogword_clust, blognames, jpeg='blogclust.jpg')
 
-    print "Clustering word blogs"
-    wordblogs = rotatematrix(blogwords)
-    wordblog_clust = hcluster(wordblogs, distance=similar.pearsonDist)
-    # printclust(wordblog_clust, blognames)
-    drawdendrogram(wordblog_clust, words, jpeg='wordclust.jpg')
+    # print "Clustering blog words"
+    # blogword_clust = hcluster(blogwords, distance=similar.pearsonDist)
+    # # printclust(blogword_clust, blognames)
+    # drawdendrogram(blogword_clust, blognames, jpeg='blogclust.jpg')
+
+    # print "Clustering word blogs"
+    # wordblogs = rotatematrix(blogwords)
+    # wordblog_clust = hcluster(wordblogs, distance=similar.pearsonDist)
+    # # printclust(wordblog_clust, blognames)
+    # drawdendrogram(wordblog_clust, words, jpeg='wordclust.jpg')
+
+    print "Clustering k-means"
+    bestMatches = kcluster(blogwords, distance=similar.pearsonDist, k=10)
+    print bestMatches
+    printKCluster(bestMatches, blognames)
 
 if __name__ == "__main__":
     main()
