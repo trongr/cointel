@@ -2,3 +2,4 @@
 *.pyc
 deps
 wordmatrix.txt
+tmp

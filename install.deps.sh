@@ -25,3 +25,6 @@ cd Imaging-1.1.7
 sudo python setup.py install
 cd ..
 sudo rm -rf Imaging-1.1.7
+
+echo "Installing BeautifulSoup"
+sudo pip install beautifulsoup4
