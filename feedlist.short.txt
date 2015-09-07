@@ -1,0 +1,10 @@
+http://www.thestar.com/feeds.articles.life.rss
+http://www.thestar.com/feeds.blogs.sports.breakaway_blog.rss
+http://www.thestar.com/feeds.blogs.news.privacy-blog.rss
+http://www.thestar.com/feeds.blogs.news.the_world_daily.rss
+http://www.thestar.com/feeds.blogs.photos.toronto_star_photo_blog.rss
+http://www.thestar.com/feeds.blogs.sports.blue_jays_baseball_blog.rss
+http://www.thestar.com/feeds.blogs.sports.doug_smiths_sports_blog.rss
+http://www.thestar.com/feeds.blogs.news.city-hall-blog.rss
+http://www.thestar.com/feeds.blogs.news.starweather.rss
+http://www.thestar.com/feeds.blogs.entertainment.stargazing_blog.rss
